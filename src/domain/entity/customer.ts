@@ -8,19 +8,31 @@
 //-Entity / Model
 // --customer.ts (get, set)
 
+import EventDispatcher from "../event/@shared/event-dispatcher";
+import CustomerAddressChangedEvent from "../event/customer/customer-address-changed.event";
+import CustomerCreatedEvent from "../event/customer/customer-created.event";
 import Address from "./address";
 
 export default class Customer {
   private _id: string;
   private _name: string = "";
+  private _eventDispatcher: EventDispatcher;
   private _address!: Address;
   private _active: boolean = false;
   private _rewardPoints: number = 0;
 
-  constructor(id: string, name: string) {
+  constructor(id: string, name: string, eventDispatcher?: EventDispatcher) {
     this._id = id;
     this._name = name;
+    if (typeof eventDispatcher !== "undefined") {
+      this._eventDispatcher = eventDispatcher;
+    }
+
     this.validate();
+
+    if (typeof eventDispatcher !== "undefined") {
+      this.callCustomerCreatedEvent(eventDispatcher);
+    }
   }
 
   get id(): string {
@@ -52,9 +64,18 @@ export default class Customer {
   get Address(): Address {
     return this._address;
   }
+
+  get eventDispatcher(): EventDispatcher {
+    return this._eventDispatcher;
+  }
+
   
   changeAddress(address: Address) {
     this._address = address;
+
+    if (typeof this._eventDispatcher !== "undefined") {
+      this.callCustomerAddressChangedEvent(this._eventDispatcher);
+    }
   }
 
   isActive(): boolean {
@@ -79,4 +100,24 @@ export default class Customer {
   set Address(address: Address) {
     this._address = address;
   }
+
+  callCustomerCreatedEvent(eventDispatcher: EventDispatcher) {
+
+    const customerCreatedEvent = new CustomerCreatedEvent({});
+
+    eventDispatcher.notify(customerCreatedEvent);
+  };
+
+  callCustomerAddressChangedEvent(eventDispatcher: EventDispatcher) {
+
+    const customerAddressChangedEvent = new CustomerAddressChangedEvent({
+      id: this.id,
+      name: this.name,
+      address: this.Address,
+    });
+
+    eventDispatcher.notify(customerAddressChangedEvent);
+  }
+
+  
 }
